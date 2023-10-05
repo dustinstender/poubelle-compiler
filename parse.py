@@ -4,8 +4,9 @@ from lex import *
 
 # Parser object keeps track of current token and checks if the code matches the grammar.
 class Parser:
-    def __init__(self, lexer):
+    def __init__(self, lexer, emitter):
         self.lexer = lexer
+        self.emitter = emitter
 
         self.symbols = set()
         self.labels_declared = set()
@@ -40,6 +41,8 @@ class Parser:
 
     def program(self):
         print("Program")
+
+        self.emitter.header_line("console.log('you are emitting something...')")
 
         while self.check_token(TokenType.NEWLINE):
             self.next_token()
@@ -123,36 +126,47 @@ class Parser:
             self.next_token()
 
             if self.check_token(TokenType.STRING):
+                self.emitter.emit_line(
+                    "console.log('" + self.current_token.text + "');"
+                )
                 self.next_token()
             else:
+                self.emitter.emit("console.log('")
                 self.expression()
+                self.emitter.emit_line("');")
 
         elif self.check_token(TokenType.IF):
             print("If statement")
             self.next_token()
+            self.emitter.emit("if (")
             self.comparison()
 
             self.match(TokenType.THEN)
             self.new_line()
+            self.emitter.emit_line(") {")
 
             while not self.check_token(TokenType.ENDIF):
                 self.statement()
 
             self.match(TokenType.ENDIF)
+            self.emitter.emit_line("}")
 
         elif self.check_token(TokenType.WHILE):
             print("while loop")
 
             self.next_token()
+            self.emitter.emit("while (")
             self.comparison()
 
             self.match(TokenType.REPEAT)
             self.new_line()
+            self.emitter.emit_line(") {")
 
             while not self.check_token(TokenType.ENDWHILE):
                 self.statement()
 
             self.match(TokenType.ENDWHILE)
+            self.emitter.emit_line("}")
 
         elif self.check_token(TokenType.LABEL):
             print("label")
@@ -163,6 +177,7 @@ class Parser:
                 self.abort("label already exists")
             self.labels_declared.add(self.current_token.text)
 
+            self.emitter.emit(self.current_token.text + ":")
             self.match(TokenType.IDENT)
 
         elif self.check_token(TokenType.GOTO):
@@ -170,6 +185,7 @@ class Parser:
 
             self.next_token()
             self.labels_go_to.add(self.current_token.text)
+            self.emitter.emit("goto" + self.current_token.text + ";")
             self.match(TokenType.IDENT)
 
         elif self.check_token(TokenType.LET):
@@ -180,9 +196,11 @@ class Parser:
             if self.current_token.text not in self.symbols:
                 self.symbols.add(self.current_token.text)
 
+            self.emitter.emit("let " + self.current_token.text + " = ")
             self.match(TokenType.IDENT)
             self.match(TokenType.EQ)
             self.expression()
+            self.emitter.emit_line(";")
 
         elif self.check_token(TokenType.INPUT):
             print("input")

@@ -1,10 +1,11 @@
 from lex import *
 from parse import *
+from emit import *
 import sys
 
 
 def main_thing():
-    print("Teeny Tiny Compiler")
+    print("Poubelle Compiler")
 
     if len(sys.argv) != 2:
         sys.exit("Error: Compiler needs source file as argument.")
@@ -13,9 +14,11 @@ def main_thing():
 
     # Initialize the lexer and parser.
     lexer = Lexer(source)
-    parser = Parser(lexer)
+    emitter = Emitter("out.js")
+    parser = Parser(lexer, emitter)
 
     parser.program()  # Start the parser.
+    emitter.write_file()
     print("Parsing completed.")
 
 
