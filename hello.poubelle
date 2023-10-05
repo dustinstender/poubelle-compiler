@@ -1,7 +1,7 @@
 PRINT "How many fibonacci numbers do you want?"
-INPUT nums
 PRINT ""
 
+LET nums = 50
 LET a = 0
 LET b = 1
 WHILE nums > 0 REPEAT

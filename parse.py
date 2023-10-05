@@ -65,34 +65,30 @@ class Parser:
         )
 
     def expression(self):
-        print("expression")
-
         self.term()
 
         while self.check_token(TokenType.PLUS) or self.check_token(TokenType.MINUS):
+            self.emitter.emit(self.current_token.text)
             self.next_token()
             self.term()
 
     def term(self):
-        print("term")
-
         self.unary()
 
         while self.check_token(TokenType.ASTERISK) or self.check_token(TokenType.SLASH):
+            self.emitter.emit(self.current_token.text)
             self.next_token()
             self.unary()
 
     def unary(self):
-        print("unary")
-
         if self.check_token(TokenType.PLUS) or self.check_token(TokenType.MINUS):
+            self.emitter.emit(self.current_token.text)
             self.next_token()
         self.primary()
 
     def primary(self):
-        print("primary:" + self.current_token.text)
-
         if self.check_token(TokenType.NUMBER):
+            self.emitter.emit(self.current_token.text)
             self.next_token()
         elif self.check_token(TokenType.IDENT):
             # ensure the variable already exists
@@ -101,28 +97,28 @@ class Parser:
                     "referencing a variable before assignment:"
                     + self.current_token.text
                 )
+            self.emitter.emit(self.current_token.text)
             self.next_token()
         else:
             self.abort("Unexpected token at " + self.current_token.text)
 
     def comparison(self):
-        print("comparison")
-
         self.expression()
 
         if self.is_comparison_operator():
+            self.emitter.emit(self.current_token.text)
             self.next_token()
             self.expression()
         else:
             self.abort("Expected comparison operator at: " + self.current_token.text)
 
         while self.is_comparison_operator():
+            self.emitter.emit(self.current_token.text)
             self.next_token()
             self.comparison()
 
     def statement(self):
         if self.check_token(TokenType.PRINT):
-            print("STATEMENT-PRINT")
             self.next_token()
 
             if self.check_token(TokenType.STRING):
@@ -131,12 +127,11 @@ class Parser:
                 )
                 self.next_token()
             else:
-                self.emitter.emit("console.log('")
+                self.emitter.emit("console.log(")
                 self.expression()
-                self.emitter.emit_line("');")
+                self.emitter.emit_line(");")
 
         elif self.check_token(TokenType.IF):
-            print("If statement")
             self.next_token()
             self.emitter.emit("if (")
             self.comparison()
@@ -152,8 +147,6 @@ class Parser:
             self.emitter.emit_line("}")
 
         elif self.check_token(TokenType.WHILE):
-            print("while loop")
-
             self.next_token()
             self.emitter.emit("while (")
             self.comparison()
@@ -169,8 +162,6 @@ class Parser:
             self.emitter.emit_line("}")
 
         elif self.check_token(TokenType.LABEL):
-            print("label")
-
             self.next_token()
 
             if self.current_token.text in self.labels_declared:
@@ -181,34 +172,37 @@ class Parser:
             self.match(TokenType.IDENT)
 
         elif self.check_token(TokenType.GOTO):
-            print("go to")
-
             self.next_token()
             self.labels_go_to.add(self.current_token.text)
             self.emitter.emit("goto" + self.current_token.text + ";")
             self.match(TokenType.IDENT)
 
         elif self.check_token(TokenType.LET):
-            print("let statement")
-
             self.next_token()
 
             if self.current_token.text not in self.symbols:
                 self.symbols.add(self.current_token.text)
+                self.emitter.emit("let ")
 
-            self.emitter.emit("let " + self.current_token.text + " = ")
+            self.emitter.emit(self.current_token.text + " = ")
             self.match(TokenType.IDENT)
             self.match(TokenType.EQ)
             self.expression()
             self.emitter.emit_line(";")
 
         elif self.check_token(TokenType.INPUT):
-            print("input")
-
             self.next_token()
 
             if self.current_token.text not in self.symbols:
                 self.symbols.add(self.current_token.text)
+                self.emitter.emit_line("let " + self.current_token.text + ";")
+
+            self.emitter.emit_line(
+                self.current_token.text
+                + " = prompt('Enter a value for "
+                + self.current_token.text
+                + ":');"
+            )
 
             self.match(TokenType.IDENT)
 
@@ -218,8 +212,6 @@ class Parser:
         self.new_line()
 
     def new_line(self):
-        print("New Line")
-
         self.match(TokenType.NEWLINE)
 
         while self.check_token(TokenType.NEWLINE):
